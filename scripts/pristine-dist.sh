@@ -23,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUT_DIR="$PROJECT_ROOT/dist"
 RELEASE=false
-SOURCE_URL="${PRISTINE_SOURCE_URL:-https://github.com/yashspr/pristine}"
+SOURCE_URL="${PRISTINE_SOURCE_URL:-https://github.com/yashspr/pristine-cli}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
