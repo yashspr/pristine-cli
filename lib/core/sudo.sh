@@ -85,7 +85,9 @@ request_sudo_access() {
     local tty_path="/dev/tty"
     local is_gui_mode=false
 
-    if [[ ! -r "$tty_path" || ! -w "$tty_path" ]]; then
+    # -r/-w only check /dev/tty's mode bits (world rw); without a controlling
+    # terminal (launched from an app) the open itself fails. pristine-fork
+    if [[ ! -r "$tty_path" || ! -w "$tty_path" ]] || ! { : < "$tty_path"; } 2> /dev/null; then # pristine-fork
         tty_path=$(tty 2> /dev/null || echo "")
         if [[ -z "$tty_path" || ! -r "$tty_path" || ! -w "$tty_path" ]]; then
             is_gui_mode=true
@@ -106,7 +108,9 @@ request_sudo_access() {
         local escaped_msg="${prompt_msg//\\/\\\\}"
         escaped_msg="${escaped_msg//\"/\\\"}"
         local password
-        password=$(osascript -e "display dialog \"$escaped_msg\" default answer \"\" with title \"Mole\" with icon caution with hidden answer" -e 'text returned of result' 2> /dev/null)
+        local dialog_title="${PRISTINE_DIALOG_TITLE:-Mole}"                                                                                                                                        # pristine-fork
+        dialog_title="${dialog_title//[^A-Za-z0-9 ._-]/}"                                                                                                                                          # pristine-fork
+        password=$(osascript -e "display dialog \"$escaped_msg\" default answer \"\" with title \"$dialog_title\" with icon caution with hidden answer" -e 'text returned of result' 2> /dev/null) # pristine-fork
 
         if [[ -z "$password" ]]; then
             # User cancelled the dialog

@@ -1,0 +1,3 @@
+# Pristine fork: the README is the fork's own; upstream README edits never apply.
+# Needs the local driver once per clone: git config merge.ours.driver true
+README.md merge=ours

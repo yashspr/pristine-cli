@@ -12,6 +12,8 @@ Upstream base: `tw93/mole` v1.56.0 (`50790e8a`, 2026-09-27).
 |---|---|
 | 2026-09-27 | `clean --json`, `--exclude-from FILE`, `--admin` (machine-readable clean for the GUI) |
 | 2026-09-27 | `pristine` entrypoint; `scripts/pristine-dist.sh` bundle builder |
+| 2026-09-28 | Rebrand per Mole's TRADEMARK.md: own README, Mole logo images removed, admin dialog titled "Pristine" when run via `pristine` |
+| 2026-09-28 | Fix: `request_sudo_access` now opens `/dev/tty` to detect a terminal. `-r`/`-w` pass without a controlling terminal, so app-spawned runs never got the password dialog (upstream bug; PR candidate) |
 
 ## Releases
 
@@ -41,7 +43,11 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
 
 - Fork-only files (upstream never touches them, so they never conflict):
   `lib/pristine/*`, `pristine`, `scripts/pristine-dist.sh`, `tests/pristine_*.bats`,
-  `CHANGES-FORK.md`.
+  `CHANGES-FORK.md`, `.gitattributes`.
+- `README.md` is the fork's own. `.gitattributes` marks it `merge=ours`, so upstream README
+  edits are dropped automatically. Each clone needs `git config merge.ours.driver true` once.
+- `docs/img/*` (Mole logo/screenshots) were deleted. If upstream changes or adds images there,
+  the merge stops with a modify/delete conflict: resolve it with `git rm docs/img/<file>`.
 - Behaviour is added by **wrapping upstream functions at runtime**
   (`pristine_wrap_function` in `lib/pristine/json.sh`): the upstream function is renamed to
   `_pristine_orig_<name>` and a fork wrapper takes its name. Upstream can rewrite those function
@@ -57,6 +63,8 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
 | `bin/clean.sh` | `source .../lib/pristine/clean.sh` | load fork code |
 | `bin/clean.sh` | 2 lines at top of `main()` | strip fork flags, install wrappers |
 | `.gitignore` | `/dist/` | ignore bundle output |
+| `lib/core/sudo.sh` | 2 lines at the `/dev/tty` check in `request_sudo_access` | real open test, so app-spawned runs reach the native dialog |
+| `lib/core/sudo.sh` | 3 lines at the `osascript` dialog | title from `PRISTINE_DIALOG_TITLE` (sanitized; default "Mole", `pristine` sets "Pristine") |
 
 Upstream functions wrapped at runtime (must keep these names): `start_cleanup`,
 `perform_cleanup`, `start_section`, `log_operation`, `cleanup`, `show_clean_help`. Also read:
@@ -67,8 +75,10 @@ Upstream functions wrapped at runtime (must keep these names): `start_cleanup`,
 ### Merging upstream
 
 ```bash
+git config merge.ours.driver true   # once per clone (keeps our README.md)
 git fetch upstream
 git merge upstream/main          # merge, not rebase: keeps fork history and tags intact
+                                 # docs/img conflict? → git rm docs/img/<file>
 git grep -n 'pristine-fork'      # hook lines still in place?
 MOLE_TEST_NO_AUTH=1 bats tests/pristine_*.bats
 ./scripts/check.sh --no-format
