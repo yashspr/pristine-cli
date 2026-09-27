@@ -27,6 +27,7 @@ source "$SCRIPT_DIR/../lib/clean/app_caches.sh"
 source "$SCRIPT_DIR/../lib/clean/hints.sh"
 source "$SCRIPT_DIR/../lib/clean/system.sh"
 source "$SCRIPT_DIR/../lib/clean/user.sh"
+source "$SCRIPT_DIR/../lib/pristine/clean.sh" # pristine-fork
 
 SYSTEM_CLEAN=false
 DRY_RUN=false
@@ -2151,6 +2152,8 @@ run_cloud_and_office_cleanup() {
 }
 
 main() {
+    pristine_clean_main_hook "$@"                                # pristine-fork
+    set -- ${PRISTINE_CLEAN_ARGS[@]+"${PRISTINE_CLEAN_ARGS[@]}"} # pristine-fork
     while [[ $# -gt 0 ]]; do
         case "$1" in
             "--help" | "-h")
