@@ -1,0 +1,8 @@
+#!/bin/bash
+# Pristine fork entrypoint. Same command surface as `mole` / `mo`.
+# Fork-only file; see CHANGES-FORK.md.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/mole" "$@"
