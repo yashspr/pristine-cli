@@ -1,6 +1,12 @@
 #!/bin/bash
 # Pristine fork entrypoint. Same command surface as `mole` / `mo`.
 # Fork-only file; see CHANGES-FORK.md.
+#
+# For the fork's --json commands it also writes the final
+# {"type":"end","exit_code":N} event after the command exits, so every event
+# stream ends the same way whatever traps upstream code sets. SIGINT, SIGTERM
+# and SIGHUP are forwarded to the command as SIGTERM (a background job in a
+# non-interactive shell ignores SIGINT), which Mole handles as a cancel.
 
 set -euo pipefail
 
@@ -8,4 +14,57 @@ set -euo pipefail
 export PRISTINE_DIALOG_TITLE="${PRISTINE_DIALOG_TITLE:-Pristine}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$SCRIPT_DIR/mole" "$@"
+
+command_name=""
+json=false
+for arg in "$@"; do
+    if [[ -z "$command_name" && "$arg" != -* ]]; then
+        command_name="$arg"
+    fi
+    [[ "$arg" == "--json" ]] && json=true
+done
+
+case "$command_name" in
+    clean | uninstall | optimize | optimise | purge | installer) ;;
+    *) json=false ;; # status/analyze/history own their --json output
+esac
+
+if [[ "$json" != "true" ]]; then
+    exec "$SCRIPT_DIR/mole" "$@"
+fi
+
+"$SCRIPT_DIR/mole" "$@" &
+child=$!
+
+# A terminal Ctrl-C reaches every process in the foreground group. Mirror
+# that for the command's process tree, deepest first: signalling only the top
+# shell is not enough, because bash defers its trap until the worker it is
+# waiting on finishes, and that worker would keep scanning.
+# shellcheck disable=SC2329  # Invoked by forward_signal.
+signal_tree() {
+    local pid="$1" kid
+    for kid in $(pgrep -P "$pid" 2> /dev/null); do
+        signal_tree "$kid"
+    done
+    kill -TERM "$pid" 2> /dev/null || true
+}
+# shellcheck disable=SC2329  # Invoked by the trap below.
+forward_signal() {
+    signal_tree "$child"
+}
+trap forward_signal INT TERM HUP
+
+# wait returns early (>128) when a trapped signal arrives; keep waiting until
+# the child is reaped so its real exit status is reported.
+rc=0
+while :; do
+    if wait "$child"; then
+        rc=0
+    else
+        rc=$?
+    fi
+    kill -0 "$child" 2> /dev/null || break
+done
+
+printf '{"type":"end","exit_code":%d}\n' "$rc"
+exit "$rc"

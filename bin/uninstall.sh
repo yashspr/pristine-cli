@@ -30,6 +30,7 @@ source "$SCRIPT_DIR/../lib/ui/menu_paginated.sh"
 source "$SCRIPT_DIR/../lib/ui/app_selector.sh"
 source "$SCRIPT_DIR/../lib/uninstall/steam.sh"
 source "$SCRIPT_DIR/../lib/uninstall/batch.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../lib/pristine/uninstall.sh" # pristine-fork
 
 # State
 selected_apps=()
@@ -1663,6 +1664,8 @@ uninstall_list_apps() {
 }
 
 main() {
+    pristine_uninstall_main_hook "$@"                                    # pristine-fork
+    set -- ${PRISTINE_UNINSTALL_ARGS[@]+"${PRISTINE_UNINSTALL_ARGS[@]}"} # pristine-fork
     # Set current command for operation logging
     export MOLE_CURRENT_COMMAND="uninstall"
     log_operation_session_start "uninstall"

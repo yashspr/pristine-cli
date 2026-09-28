@@ -12,15 +12,18 @@ old installers, runs maintenance tasks, and reports live system status.
 
 ## What the fork adds
 
-The fork adds machine-readable, non-interactive modes so that a GUI can drive the engine as a
-separate program:
+Machine-readable, non-interactive modes, so a GUI can drive the engine as a separate program:
 
-- `pristine clean [--dry-run] --json [--exclude-from FILE] [--admin]` streams NDJSON events:
-  the preview items with their sizes, per-path results, and a summary.
-- A `pristine` entrypoint, and `scripts/pristine-dist.sh`, which builds a self-contained bundle
-  with universal arm64 + x86_64 Go binaries.
+- `pristine clean | installer | purge | optimize | uninstall … --json` stream NDJSON events:
+  previews with sizes, per-path results, and a summary. The `pristine` entrypoint always ends
+  the stream with an `end` event, and SIGTERM cancels cleanly.
+- Selection without menus: `--exclude-from` / `--only-from` path lists, `--skip-from` for
+  optimize tasks, exact app paths or bundle ids for uninstall.
+- `--admin` lets a run show the native admin-password dialog; without it `--json` never prompts.
+- `scripts/pristine-dist.sh` builds a self-contained bundle with universal arm64 + x86_64 Go
+  binaries.
 
-The flags and the event schema are documented in [CHANGES-FORK.md](CHANGES-FORK.md).
+Flags and the event schema: [CHANGES-FORK.md](CHANGES-FORK.md).
 
 ## Usage
 

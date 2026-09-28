@@ -14,6 +14,7 @@ Upstream base: `tw93/mole` v1.56.0 (`50790e8a`, 2026-09-27).
 | 2026-09-27 | `pristine` entrypoint; `scripts/pristine-dist.sh` bundle builder |
 | 2026-09-28 | Rebrand per Mole's TRADEMARK.md: own README, Mole logo images removed, admin dialog titled "Pristine" when run via `pristine` |
 | 2026-09-28 | Fix: `request_sudo_access` now opens `/dev/tty` to detect a terminal. `-r`/`-w` pass without a controlling terminal, so app-spawned runs never got the password dialog (upstream bug; PR candidate) |
+| 2026-09-28 | `--json` for `installer`, `purge`, `optimize`, `uninstall`; shared flag/event layer in `lib/pristine/common.sh`; the `pristine` entrypoint writes the final `end` event and forwards cancellation to the whole process tree |
 
 ## Releases
 
@@ -25,6 +26,7 @@ must be pushed so its corresponding source is public (GPL-3.0 §6).
 | Tag | Upstream base | Notes |
 |---|---|---|
 | `pristine-v0.1.0` | tw93/mole v1.56.0 (`50790e8a`) | `clean --json`, `--exclude-from`, `--admin`; `pristine` entrypoint; dist script |
+| `pristine-v0.2.0` | tw93/mole v1.56.0 (`50790e8a`) | rebrand; admin-dialog fix; `--json` for installer / purge / optimize / uninstall; entrypoint `end` event + cancellation |
 
 Cutting a release:
 
@@ -51,8 +53,8 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
 - Behaviour is added by **wrapping upstream functions at runtime**
   (`pristine_wrap_function` in `lib/pristine/json.sh`): the upstream function is renamed to
   `_pristine_orig_<name>` and a fork wrapper takes its name. Upstream can rewrite those function
-  bodies freely; a merge only breaks if a wrapped function is **renamed or removed**, and the
-  fork tests catch that.
+  bodies freely; a merge only breaks if a wrapped function is **renamed or removed** (or, where
+  noted, a local variable a wrapper reads is renamed), and the fork tests catch that.
 - Every edited line in a shared file ends with `# pristine-fork`, so
   `git grep -n 'pristine-fork'` is the complete list of hook points.
 
@@ -60,17 +62,25 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
 
 | Shared file | Lines | Purpose |
 |---|---|---|
-| `bin/clean.sh` | `source .../lib/pristine/clean.sh` | load fork code |
-| `bin/clean.sh` | 2 lines at top of `main()` | strip fork flags, install wrappers |
-| `.gitignore` | `/dist/` | ignore bundle output |
+| `bin/clean.sh`, `bin/installer.sh`, `bin/purge.sh`, `bin/optimize.sh`, `bin/uninstall.sh` | 1 `source .../lib/pristine/<cmd>.sh` line each | load fork code |
+| same five files | 2 lines at the top of `main()` each | strip fork flags, install wrappers |
 | `lib/core/sudo.sh` | 2 lines at the `/dev/tty` check in `request_sudo_access` | real open test, so app-spawned runs reach the native dialog |
 | `lib/core/sudo.sh` | 3 lines at the `osascript` dialog | title from `PRISTINE_DIALOG_TITLE` (sanitized; default "Mole", `pristine` sets "Pristine") |
+| `.gitignore` | `/dist/` | ignore bundle output |
 
-Upstream functions wrapped at runtime (must keep these names): `start_cleanup`,
-`perform_cleanup`, `start_section`, `log_operation`, `cleanup`, `show_clean_help`. Also read:
-`emit_deduplicated_dry_run_ledger`, `CLEAN_PREVIEW_LEDGER_FILE`, `WHITELIST_PATTERNS`,
-`DRY_RUN`, `SYSTEM_CLEAN`, `total_size_cleaned`, `files_cleaned`, `total_items`,
-`DRY_RUN_TOTAL_PARTIAL`, `MOLE_CLEAN_SIZING_TIMEOUTS`, `ensure_sudo_session`.
+`bin/uninstall.sh` sources its fork file relative to `BASH_SOURCE`, not `SCRIPT_DIR`: the
+upstream libraries it loads first reassign `SCRIPT_DIR`.
+
+### Upstream names the fork depends on
+
+| Command | Wrapped functions | Also reads |
+|---|---|---|
+| all | `log_operation`, `ensure_sudo_session` (only under `--json` without `--admin`), `show_*_help` | `WHITELIST_PATTERNS`, `adopt_sudo_session` |
+| clean | `start_cleanup`, `perform_cleanup`, `start_section` | `emit_deduplicated_dry_run_ledger`, `CLEAN_PREVIEW_LEDGER_FILE`, `CURRENT_SECTION`, `DRY_RUN`, `SYSTEM_CLEAN`, `total_size_cleaned`, `files_cleaned`, `total_items`, `DRY_RUN_TOTAL_PARTIAL`, `MOLE_CLEAN_SIZING_TIMEOUTS` |
+| installer | `perform_installers`, `show_installer_menu` (replaced), `record_installer_delete_failure` | `INSTALLER_PATHS`, `INSTALLER_SIZES`, `INSTALLER_SOURCES`, `MOLE_SELECTION_RESULT`, `total_deleted`, `total_size_freed_kb`, `total_delete_failed`, `INSTALLER_EXIT_*`; relies on the confirmation treating EOF as Enter |
+| purge | `start_purge`, `perform_purge`, `mole_purge_is_cloud_synced_path`, `log_operation_session_end`, `is_path_whitelisted` (`--only-from`) | per-item locals of `clean_project_artifacts`: `item`, `size_kb`, `size_unknown`, `is_recent`, `activity_state`, `project_root`, `artifact_type`; `PURGE_SEARCH_PATHS`, `PURGE_RUN_OUTCOME`, `PURGE_UNKNOWN_SIZE_COUNT` |
+| optimize | `execute_optimization`, `optimize_outcomes_reset`, `show_system_health`, `show_optimization_summary` | `MOLE_OPTIMIZE_ACTIONS`, `MOLE_OPTIMIZE_HEALTH_NAMES`, `MOLE_OPTIMIZE_RESULT_*`, `MOLE_OPTIMIZE_OUTCOME_*`, `MOLE_OPTIMIZE_SUDO_AVAILABLE`, `OPTIMIZE_*` stats |
+| uninstall | `uninstall_list_apps` and `match_apps_by_name` (replaced), `_batch_scan_app_details`, `_batch_render_summary`, `_mole_delete_log` | `apps_data`, `selected_apps`, `scan_applications`, `load_applications`; batch locals `app_details` (field order), `blocked_apps`, `manual_removal_apps`, `success_count`, `failed_count`, `total_size_freed`, `failed_items`, `running_at_uninstall_apps`; relies on the batch confirmation treating EOF as Enter |
 
 ### Merging upstream
 
@@ -86,42 +96,85 @@ MOLE_TEST_NO_AUTH=1 bats tests/pristine_*.bats
 
 Then update "Upstream base" above.
 
-## `clean` machine interface
+## Machine interface
 
-```
-pristine clean [--dry-run] --json [--exclude-from FILE] [--admin]
-```
+Always run through the **`pristine`** entrypoint. It is the same CLI as `mo`/`mole`, plus:
 
-- `--json`: stdout carries **only** NDJSON events (one object per line); all human output moves
-  to stderr. stdin is detached, so the run never waits for a keypress.
-- `--exclude-from FILE`: newline-separated absolute paths (`~/` allowed, `#` comments) protected
-  for this run only. They join Mole's whitelist in memory, so the same guards that honour
-  `~/.config/mole/whitelist` in preview and in real removal honour them. As with the whitelist,
-  excluding a path also keeps its parent directories. An unreadable or invalid file aborts the
-  run with exit 1 before anything is scanned.
-- `--admin`: ask for admin rights so system caches are included. With no terminal, Mole shows a
-  native macOS password dialog. Without it, a non-interactive run only uses an already-cached
-  sudo session.
+- For `clean`, `installer`, `purge`, `optimize` and `uninstall` with `--json`, it runs the
+  command as a child and writes `{"type":"end","exit_code":N}` as the **last line** once the
+  command has exited, whatever happened (success, error, cancel).
+- **Cancel** by sending SIGTERM (or SIGINT) to the `pristine` process. It signals the command's
+  whole process tree, deepest first, as a terminal Ctrl-C would. Expect `end` with exit code
+  143; a `summary` may be missing on cancel.
+- Treat the `end` event or process exit as completion, not stdout EOF: background helpers (sudo
+  keepalive, brew autoremove) can hold the pipe open.
+- `PRISTINE_DIALOG_TITLE` defaults to "Pristine" (title of the native admin-password dialog).
+- `status --json`, `analyze --json`, `history --json` are upstream's own formats and get no `end`.
 
-Selection model: preview with `--dry-run --json`, let the user deselect items, then run
-without `--dry-run`, passing the deselected paths via `--exclude-from`. The real run rescans;
-anything not excluded that Mole would clean is cleaned.
+### Common flags
+
+| Flag | Meaning |
+|---|---|
+| `--json` | stdout carries **only** NDJSON events (one object per line); human output moves to stderr. stdin is detached, so a run never waits for a keypress. |
+| `--admin` | Allow an admin prompt (native macOS dialog when there is no terminal). **Without it a `--json` run never prompts**: it only adopts an already-cached sudo session. |
+| `--exclude-from FILE` | Never touch the listed paths. |
+| `--only-from FILE` | Touch only the listed paths. |
+
+Path-list files: newline-separated absolute paths, `~/` allowed, `#` comments, trailing `/`
+ignored. An unreadable file or an invalid line aborts with exit 1 before anything is scanned.
+`--exclude-from` and `--only-from` cannot be combined.
+
+### Per command
+
+| Command | Flags | Selection model |
+|---|---|---|
+| `clean [--dry-run]` | `--json --admin --exclude-from` | Everything Mole would clean, minus excluded paths (joined to the whitelist in memory, so excluding a child also keeps its parents). The real run rescans. |
+| `installer [--dry-run]` | `--json --exclude-from --only-from` (lists need `--json`) | The menu is replaced: all candidates minus excluded, or only listed ones. Upstream's identity + size re-check runs before each delete. Deletes are permanent unless `MOLE_DELETE_MODE=trash`. |
+| `purge (--dry-run \| --yes) [--include-empty]` | `--json --exclude-from --only-from` | Upstream's unattended rule stays: artifacts modified within 7 days (or with uncertain activity) and cloud-synced ones are **never** removed unattended, even if listed. Every protection/identity/activity check still runs. |
+| `optimize [--dry-run]` | `--json --admin --skip-from FILE` | All tasks, minus task ids listed in `--skip-from` (recorded as `skipped`). Task ids are in the `start` event. |
+| `uninstall --list` / `uninstall (--dry-run \| --yes) [--permanent] APP…` | `--json --admin --yes` | Under `--json`, `APP` is an exact bundle path or bundle id; any unmatched/ambiguous `APP` selects nothing (`error` event, exit 1). Removal needs `--yes`. Default is Trash. |
+
+Recommended flow: preview with `--dry-run --json`, let the user deselect, then run for real
+passing the deselection (`--exclude-from`, `--only-from`, `--skip-from`, or the chosen apps).
 
 ### Events (`schema_version` 1)
 
-| `type` | Fields |
-|---|---|
-| `start` | `schema_version`, `command`, `dry_run`, `system_clean`, `external_volume` (string or null), `excluded_paths` |
-| `section` | `name` |
-| `operation` | `action` (`REMOVED` / `SKIPPED` / `FAILED` / …), `path`, `detail` (human size or reason), `section` |
-| `item` | dry run only: `path`, `section`, `size_kb` (int or null), `size_known`, `item_count`, `covered_by` (string or null) |
-| `summary` | `dry_run`, `status` (`complete` / `cancelled` / `interrupted` / `incomplete`), `exit_code`, `size_kb`, `size_partial`, `items`, `categories`, `system_clean`, `permission_denied`, `removal_timeouts`, `free_space_kb`, `preview_file` |
-| `end` | `exit_code`, `signal` — always the last line, also on early exit or interrupt |
+Every stream starts with `start` (`schema_version`, `command`, …) and ends with `end`.
+
+| Command | `type` | Fields |
+|---|---|---|
+| all | `end` | `exit_code` |
+| clean, installer, purge, optimize, uninstall | `operation` | `action` (`REMOVED` / `TRASHED` / `SKIPPED` / `FAILED` / `TASK_FAILED` / …), `path`, `detail` (human size or reason), `section` (clean, optimize) |
+| clean | `start` | `dry_run`, `system_clean`, `external_volume`, `excluded_paths` |
+| clean | `section` | `name` |
+| clean | `item` | dry run: `path`, `section`, `size_kb` (int/null), `size_known`, `item_count`, `covered_by` (string/null) |
+| clean | `summary` | `dry_run`, `status` (`complete` / `cancelled` / `interrupted` / `incomplete`), `exit_code`, `size_kb`, `size_partial`, `items`, `categories`, `system_clean`, `permission_denied`, `removal_timeouts`, `free_space_kb`, `preview_file` |
+| installer | `start` | `dry_run`, `excluded_paths`, `only_paths` |
+| installer | `item` | `path`, `kind` (`dmg` / `pkg` / `mpkg` / `iso` / `xip` / `zip`), `source`, `size_bytes`, `size_kb`, `selected` |
+| installer | `failure` | `path`, `reason` (`missing` / `changed since scan` / `delete failed` / …) |
+| installer | `summary` | `dry_run`, `status` (`complete` / `nothing_selected` / `nothing_found` / `incomplete` / `scan_failed` / `cancelled` / `interrupted`), `exit_code`, `candidates`, `selected`, `removed`, `size_kb`, `failed`, `scan_failure_path` |
+| purge | `start` | `dry_run`, `search_paths`, `excluded_paths`, `only_paths` |
+| purge | `item` | `path`, `project`, `artifact`, `size_kb` (int/null), `activity` (`old` / `recent` / `uncertain`), `age_days`, `cloud`, `selectable` (false = never removed unattended) |
+| purge | `summary` | `dry_run`, `status` (upstream `PURGE_RUN_OUTCOME`: `completed` / `incomplete` / `no_candidates` / `cancelled` / `scan_failed`), `exit_code`, `candidates`, `items`, `size_kb`, `unmeasured` |
+| optimize | `health` | `data`: upstream health JSON (memory, disk, uptime, suggestions) |
+| optimize | `start` | `dry_run`, `admin`, `tasks` (`[{id, label, skip}]`) |
+| optimize | `task` | `id`, `label`, `status` (`applied` / `unchanged` / `skipped` / `unavailable` / `attention` / `failed`), `detail` (task messages, `; `-joined) |
+| optimize | `summary` | `dry_run`, `outcomes` (count per status), `cache_cleaned_kb`, `databases_optimized`, `configs_repaired` |
+| uninstall | `start` | `mode` (`list` / `apps`), `dry_run`, `permanent`, `apps_requested` |
+| uninstall | `app` | list: `path`, `name`, `bundle_id`, `size_kb` (null when not yet measured), `last_used`, `last_used_epoch` |
+| uninstall | `error` | `code` (`unmatched` / `ambiguous`), `query`, `matches` (number of apps that matched) |
+| uninstall | `plan` | `name`, `path`, `bundle_id`, `size_kb`, `needs_admin`, `brew_cask`, `sensitive_data`, `files`, `system_files`, `review_only` |
+| uninstall | `blocked` | `name`, `reason` (`official_uninstaller` / `manual_removal`), `vendor` |
+| uninstall | `delete` | per removal sink call: `mode` (`trash` / `permanent`), `status` (`ok` / `dry-run` / `rejected` / `identity-changed` / `trash-failed` / …; only `ok` means removed), `size_kb`, `path` |
+| uninstall | `summary` | `mode`; apps: `dry_run`, `removed`, `failed`, `size_kb`, `failures`, `still_running`; list: `apps` |
 
 Notes:
-- `item` rows with `covered_by` sit inside another listed row. Show them (they can be excluded
-  on their own), but don't add their size to a total; `summary.size_kb` already excludes them.
-- Sizes are KiB. Mole's human output formats them with decimal units (1 GB = 10⁹ bytes).
-- `--external` dry runs emit no `item` rows yet (upstream writes that preview as text only).
+- clean `item` rows with `covered_by` sit inside another listed row. Show them (they can be
+  excluded on their own), but don't add their size to a total.
+- Sizes are KiB unless named `_bytes`. Mole's human output uses decimal units (1 GB = 10⁹ bytes).
+- clean `--external` dry runs emit no `item` rows yet (upstream writes that preview as text only).
+- uninstall exits 0 even when every app failed: read `summary.failed`.
+- `optimize`'s `login_items_audit` task scripts System Events and can raise a macOS Automation
+  permission prompt; skip it with `--skip-from` if that is unwanted.
 - New fields may be added within a schema version; consumers must ignore unknown fields and
   unknown `type`s. A breaking change bumps `schema_version`.

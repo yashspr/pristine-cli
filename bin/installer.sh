@@ -23,6 +23,7 @@ export MOLE_CURRENT_COMMAND="${MOLE_CURRENT_COMMAND:-installer}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/core/common.sh"
 source "$SCRIPT_DIR/../lib/ui/menu_paginated.sh"
+source "$SCRIPT_DIR/../lib/pristine/installer.sh" # pristine-fork
 
 cleanup() {
     if [[ "${IN_ALT_SCREEN:-0}" == "1" ]]; then
@@ -987,6 +988,8 @@ show_summary() {
 }
 
 main() {
+    pristine_installer_main_hook "$@"                                    # pristine-fork
+    set -- ${PRISTINE_INSTALLER_ARGS[@]+"${PRISTINE_INSTALLER_ARGS[@]}"} # pristine-fork
     for arg in "$@"; do
         case "$arg" in
             "--help" | "-h")

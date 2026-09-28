@@ -29,6 +29,7 @@ trap cleanup EXIT
 trap 'trap - EXIT; cleanup; exit 130' INT TERM
 source "$SCRIPT_DIR/../lib/core/log.sh"
 source "$SCRIPT_DIR/../lib/clean/project.sh"
+source "$SCRIPT_DIR/../lib/pristine/purge.sh" # pristine-fork
 
 # Purge ends at safe_remove just like clean, so initialize the invoking user's
 # whitelist before project discovery or the interactive selection begins.
@@ -329,6 +330,8 @@ show_help() {
 
 # Main entry point
 main() {
+    pristine_purge_main_hook "$@"                                # pristine-fork
+    set -- ${PRISTINE_PURGE_ARGS[@]+"${PRISTINE_PURGE_ARGS[@]}"} # pristine-fork
     # Parse arguments
     for arg in "$@"; do
         case "$arg" in

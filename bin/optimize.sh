@@ -28,6 +28,7 @@ source "$SCRIPT_DIR/lib/optimize/catalog.sh"
 source "$SCRIPT_DIR/lib/optimize/tasks.sh"
 source "$SCRIPT_DIR/lib/check/health_json.sh"
 source "$SCRIPT_DIR/lib/manage/whitelist.sh"
+source "$SCRIPT_DIR/lib/pristine/optimize.sh" # pristine-fork
 
 print_header() {
     printf '\n'
@@ -200,6 +201,8 @@ main() {
     # Set current command for operation logging
     export MOLE_CURRENT_COMMAND="optimize"
 
+    pristine_optimize_main_hook "$@"                                   # pristine-fork
+    set -- ${PRISTINE_OPTIMIZE_ARGS[@]+"${PRISTINE_OPTIMIZE_ARGS[@]}"} # pristine-fork
     local health_json
     for arg in "$@"; do
         case "$arg" in

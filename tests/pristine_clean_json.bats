@@ -64,13 +64,13 @@ assert_ndjson_only() {
 
 @test "clean --json keeps stdout to NDJSON events and ends with summary and end" {
     run --separate-stderr env HOME="$HOME" MOLE_TEST_MODE=1 MOLE_TEST_NO_AUTH=1 \
-        "$PROJECT_ROOT/mole" clean --json --dry-run
+        "$PROJECT_ROOT/pristine" clean --json --dry-run
 
     [ "$status" -eq 0 ] || return 1
     assert_ndjson_only "$output" || return 1
     [[ "${lines[0]}" == '{"type":"start","schema_version":1,"command":"clean","dry_run":true,'* ]] || return 1
     [[ "$output" == *'"type":"summary","dry_run":true,"status":"complete","exit_code":0'* ]] || return 1
-    [[ "${lines[${#lines[@]} - 1]}" == '{"type":"end","exit_code":0,"signal":"EXIT"}' ]] || return 1
+    [[ "${lines[${#lines[@]} - 1]}" == '{"type":"end","exit_code":0}' ]] || return 1
     [[ "$stderr" == *"Dry Run Mode"* ]] || return 1
 }
 
@@ -136,13 +136,13 @@ EOF
     run env HOME="$HOME" MOLE_TEST_MODE=1 MOLE_TEST_NO_AUTH=1 \
         "$PROJECT_ROOT/mole" clean --json --exclude-from "$HOME/missing.txt"
     [ "$status" -eq 1 ] || return 1
-    [[ "$output" == *"Cannot read exclude file"* ]] || return 1
+    [[ "$output" == *"Cannot read path list"* ]] || return 1
 
     printf 'relative/path\n' > "$HOME/exclude.txt"
     run env HOME="$HOME" MOLE_TEST_MODE=1 MOLE_TEST_NO_AUTH=1 \
         "$PROJECT_ROOT/mole" clean --exclude-from "$HOME/exclude.txt"
     [ "$status" -eq 1 ] || return 1
-    [[ "$output" == *"Exclude path must be absolute"* ]] || return 1
+    [[ "$output" == *"Path must be absolute"* ]] || return 1
 }
 
 @test "pristine_json_quote escapes quotes, backslashes and control bytes" {
