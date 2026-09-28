@@ -1,10 +1,10 @@
-# pristine-cli
+# cleaner-cli
 
-The command-line engine behind **Pristine**, a Mac cleanup app. It cleans caches and logs,
+A command-line Mac cleanup engine built for driving from a GUI. It cleans caches and logs,
 uninstalls apps with their leftovers, analyzes disk usage, removes project build artifacts and
 old installers, runs maintenance tasks, and reports live system status.
 
-> **Fork notice (GPL-3.0 §5a).** pristine-cli is a modified version of
+> **Fork notice (GPL-3.0 §5a).** cleaner-cli is a modified version of
 > [Mole](https://github.com/tw93/mole) by tw93, licensed under GPL-3.0. It is **not** affiliated
 > with or endorsed by Mole or its author. What changed, and when, is listed in
 > [CHANGES-FORK.md](CHANGES-FORK.md). Almost all of the cleanup logic and its safety rules come
@@ -30,7 +30,7 @@ Flags and the event schema: [CHANGES-FORK.md](CHANGES-FORK.md).
 Requires macOS 12 or newer, on Intel or Apple Silicon.
 
 ```bash
-git clone https://github.com/yashspr/pristine-cli.git && cd pristine-cli
+git clone https://github.com/yashspr/cleaner-cli.git && cd cleaner-cli
 make build                                   # builds bin/analyze-go and bin/status-go for this Mac
 ./pristine clean --dry-run                   # preview; nothing is deleted
 ./pristine clean --dry-run --json 2>/dev/null | head

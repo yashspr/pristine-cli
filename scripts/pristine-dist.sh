@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pristine fork: build the self-contained CLI bundle that the Pristine Mac app
+# Pristine fork: build the self-contained CLI bundle that a Mac app
 # ships inside its .app. Fork-only file; see CHANGES-FORK.md.
 #
 # Output (under --out, default ./dist):
@@ -23,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUT_DIR="$PROJECT_ROOT/dist"
 RELEASE=false
-SOURCE_URL="${PRISTINE_SOURCE_URL:-https://github.com/yashspr/pristine-cli}"
+SOURCE_URL="${PRISTINE_SOURCE_URL:-https://github.com/yashspr/cleaner-cli}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in

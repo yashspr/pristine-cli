@@ -1,8 +1,9 @@
-# Pristine fork of Mole
+# cleaner-cli: changes from Mole
 
 This repository is a **modified version** of [Mole](https://github.com/tw93/mole) by tw93,
-licensed under GPL-3.0 (see [LICENSE](LICENSE)). It is the command-line engine bundled inside
-the Pristine Mac app. Pristine is not affiliated with or endorsed by Mole or its author.
+licensed under GPL-3.0 (see [LICENSE](LICENSE)). It is a command-line engine meant to be bundled
+inside a Mac app and driven as a separate program. It is not affiliated with or endorsed by Mole
+or its author.
 
 Upstream base: `tw93/mole` v1.56.0 (`50790e8a`, 2026-09-27).
 
@@ -12,14 +13,15 @@ Upstream base: `tw93/mole` v1.56.0 (`50790e8a`, 2026-09-27).
 |---|---|
 | 2026-09-27 | `clean --json`, `--exclude-from FILE`, `--admin` (machine-readable clean for the GUI) |
 | 2026-09-27 | `pristine` entrypoint; `scripts/pristine-dist.sh` bundle builder |
-| 2026-09-28 | Rebrand per Mole's TRADEMARK.md: own README, Mole logo images removed, admin dialog titled "Pristine" when run via `pristine` |
+| 2026-09-28 | Rebrand per Mole's TRADEMARK.md: own README, Mole logo images removed, admin dialog title set by the `pristine` entrypoint (`PRISTINE_DIALOG_TITLE`) |
 | 2026-09-28 | Fix: `request_sudo_access` now opens `/dev/tty` to detect a terminal. `-r`/`-w` pass without a controlling terminal, so app-spawned runs never got the password dialog (upstream bug; PR candidate) |
 | 2026-09-28 | `--json` for `installer`, `purge`, `optimize`, `uninstall`; shared flag/event layer in `lib/pristine/common.sh`; the `pristine` entrypoint writes the final `end` event and forwards cancellation to the whole process tree |
+| 2026-09-28 | Repository renamed to `yashspr/cleaner-cli`; bundle `BUILD-INFO` source URL updated; `pristine` entrypoint's default dialog title is now "cleaner-cli" |
 
 ## Releases
 
 Fork releases are annotated tags `pristine-vX.Y.Z` (upstream's `V1.x` tags stay untouched and
-keep describing Mole). The Pristine app bundles only tagged builds:
+keep describing Mole). Apps bundle only tagged builds:
 `scripts/pristine-dist.sh --release` refuses a dirty tree or an untagged commit, and each tag
 must be pushed so its corresponding source is public (GPL-3.0 §6).
 
@@ -27,6 +29,7 @@ must be pushed so its corresponding source is public (GPL-3.0 §6).
 |---|---|---|
 | `pristine-v0.1.0` | tw93/mole v1.56.0 (`50790e8a`) | `clean --json`, `--exclude-from`, `--admin`; `pristine` entrypoint; dist script |
 | `pristine-v0.2.0` | tw93/mole v1.56.0 (`50790e8a`) | rebrand; admin-dialog fix; `--json` for installer / purge / optimize / uninstall; entrypoint `end` event + cancellation |
+| `pristine-v0.2.1` | tw93/mole v1.56.0 (`50790e8a`) | repo renamed to `yashspr/cleaner-cli`: README, source URL in `BUILD-INFO`, neutral default dialog title |
 
 Cutting a release:
 
@@ -65,7 +68,7 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
 | `bin/clean.sh`, `bin/installer.sh`, `bin/purge.sh`, `bin/optimize.sh`, `bin/uninstall.sh` | 1 `source .../lib/pristine/<cmd>.sh` line each | load fork code |
 | same five files | 2 lines at the top of `main()` each | strip fork flags, install wrappers |
 | `lib/core/sudo.sh` | 2 lines at the `/dev/tty` check in `request_sudo_access` | real open test, so app-spawned runs reach the native dialog |
-| `lib/core/sudo.sh` | 3 lines at the `osascript` dialog | title from `PRISTINE_DIALOG_TITLE` (sanitized; default "Mole", `pristine` sets "Pristine") |
+| `lib/core/sudo.sh` | 3 lines at the `osascript` dialog | title from `PRISTINE_DIALOG_TITLE` (sanitized; default "Mole", `pristine` sets "cleaner-cli") |
 | `.gitignore` | `/dist/` | ignore bundle output |
 
 `bin/uninstall.sh` sources its fork file relative to `BASH_SOURCE`, not `SCRIPT_DIR`: the
@@ -108,7 +111,7 @@ Always run through the **`pristine`** entrypoint. It is the same CLI as `mo`/`mo
   143; a `summary` may be missing on cancel.
 - Treat the `end` event or process exit as completion, not stdout EOF: background helpers (sudo
   keepalive, brew autoremove) can hold the pipe open.
-- `PRISTINE_DIALOG_TITLE` defaults to "Pristine" (title of the native admin-password dialog).
+- `PRISTINE_DIALOG_TITLE` sets the title of the native admin-password dialog (default "cleaner-cli"; a GUI should set its own name).
 - `status --json`, `analyze --json`, `history --json` are upstream's own formats and get no `end`.
 
 ### Common flags

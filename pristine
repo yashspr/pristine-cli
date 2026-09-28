@@ -11,7 +11,7 @@
 set -euo pipefail
 
 # Brand the native admin-password dialog (lib/core/sudo.sh).
-export PRISTINE_DIALOG_TITLE="${PRISTINE_DIALOG_TITLE:-Pristine}"
+export PRISTINE_DIALOG_TITLE="${PRISTINE_DIALOG_TITLE:-cleaner-cli}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

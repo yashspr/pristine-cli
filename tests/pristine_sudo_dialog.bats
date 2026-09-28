@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # Pristine fork: admin prompt when launched without a controlling terminal
-# (the Pristine app spawns the CLI that way). See CHANGES-FORK.md.
+# (a GUI app spawns the CLI that way). See CHANGES-FORK.md.
 
 load helpers/common
 
