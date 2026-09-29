@@ -52,11 +52,11 @@ HISTORY_ACTIVE_OPERATIONS=0
 HISTORY_ACTIVE_FAILED_TASKS=0
 
 history_operations_log_file() {
-    printf '%s\n' "${MOLE_OPERATIONS_LOG:-${OPERATIONS_LOG_FILE:-$HOME/Library/Logs/mole/operations.log}}"
+    printf '%s\n' "${MOLE_OPERATIONS_LOG:-${OPERATIONS_LOG_FILE:-${PRISTINE_LOG_DIR:-$HOME/Library/Logs/mole}/operations.log}}" # pristine-fork
 }
 
 history_deletions_log_file() {
-    printf '%s\n' "${MOLE_DELETE_LOG:-$HOME/Library/Logs/mole/deletions.log}"
+    printf '%s\n' "${MOLE_DELETE_LOG:-${PRISTINE_LOG_DIR:-$HOME/Library/Logs/mole}/deletions.log}" # pristine-fork
 }
 
 history_normalize_limit() {

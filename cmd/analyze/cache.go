@@ -287,6 +287,9 @@ func loadOverviewCachedMeasurement(path string) (int64, scanState, error) {
 // moleCacheRoot is the single definition of the shared cache location; both
 // accessors below build on it so the layout is stated once.
 func moleCacheRoot(home string) string {
+	if dir := pristineDataDir("PRISTINE_CACHE_DIR"); dir != "" { // pristine-fork
+		return dir // pristine-fork
+	} // pristine-fork
 	return filepath.Join(home, ".cache", "mole")
 }
 

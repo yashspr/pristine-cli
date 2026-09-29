@@ -9,7 +9,7 @@ source "$_MOLE_CACHES_MODULE_DIR/purge_shared.sh"
 # Preflight TCC prompts once to avoid mid-run interruptions.
 check_tcc_permissions() {
     [[ -t 1 ]] || return 0
-    local permission_flag="$HOME/.cache/mole/permissions_granted"
+    local permission_flag="${PRISTINE_CACHE_DIR:-$HOME/.cache/mole}/permissions_granted" # pristine-fork
     [[ -f "$permission_flag" ]] && return 0
     local -a tcc_dirs=(
         "$HOME/Library/Caches"
@@ -238,7 +238,7 @@ discover_project_cache_roots() {
 
     while IFS= read -r root; do
         [[ -d "$root" ]] && roots+=("$root")
-    done < <(mole_purge_read_paths_config "$HOME/.config/mole/purge_paths")
+    done < <(mole_purge_read_paths_config "${PRISTINE_CONFIG_DIR:-$HOME/.config/mole}/purge_paths") # pristine-fork
 
     local _indicator_tmp
     _indicator_tmp=$(create_temp_file)

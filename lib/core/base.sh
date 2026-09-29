@@ -9,6 +9,8 @@ if [[ -n "${MOLE_BASE_LOADED:-}" ]]; then
     return 0
 fi
 readonly MOLE_BASE_LOADED=1
+# shellcheck source=lib/pristine/paths.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../pristine" && pwd)/paths.sh" # pristine-fork
 
 # Cleanup libraries read "$DRY_RUN" in 70+ places without a default, and only the
 # command entry points (bin/clean.sh and friends) assign it. Anything that sources
@@ -370,7 +372,7 @@ load_mole_whitelist() {
     WHITELIST_PATTERNS=()
     WHITELIST_WARNINGS=()
 
-    local whitelist_file="$MOLE_USER_HOME/.config/mole/whitelist"
+    local whitelist_file="${PRISTINE_CONFIG_DIR:-$MOLE_USER_HOME/.config/mole}/whitelist" # pristine-fork
     if [[ -f "$whitelist_file" ]]; then
         local line duplicate existing
         while IFS= read -r line; do
@@ -961,7 +963,7 @@ prune_stale_mole_temp_files() {
     else
         invoking_home=$(get_invoking_home)
         [[ -n "$invoking_home" ]] || return 0
-        [[ "$root" == "${invoking_home%/}/.cache/mole/tmp" ]] || return 0
+        [[ "$root" == "${PRISTINE_CACHE_DIR:-${invoking_home%/}/.cache/mole}/tmp" ]] || return 0 # pristine-fork
     fi
 
     find "$root" -mindepth 1 -maxdepth 1 \( -type f -o -type l \) \
@@ -1059,7 +1061,7 @@ ensure_mole_temp_root() {
     if [[ -z "$resolved" ]]; then
         invoking_home=$(get_invoking_home)
         if [[ -n "$invoking_home" ]]; then
-            resolved=$(probe_temp_root "$invoking_home/.cache/mole/tmp" true || true)
+            resolved=$(probe_temp_root "${PRISTINE_CACHE_DIR:-$invoking_home/.cache/mole}/tmp" true || true) # pristine-fork
         fi
     fi
 

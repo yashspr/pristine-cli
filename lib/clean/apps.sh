@@ -147,7 +147,8 @@ scan_installed_apps() {
     MOLE_APP_SCAN_FAILURE_DETAIL=""
     # Cache installed app scans briefly. Only a current-schema file with the
     # completeness footer can authorize orphan decisions.
-    local cache_file="$HOME/.cache/mole/installed_apps_cache"
+    # pristine-fork: PRISTINE_CACHE_DIR (lib/pristine/paths.sh)
+    local cache_file="${PRISTINE_CACHE_DIR:-$HOME/.cache/mole}/installed_apps_cache"
     local cache_age_seconds=300 # 5 minutes
     if [[ -f "$cache_file" ]]; then
         local cache_mtime=""

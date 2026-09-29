@@ -121,7 +121,7 @@ start_purge() {
     fi
 
     # Initialize stats file in user cache directory
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${PRISTINE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mole}" # pristine-fork
     ensure_user_dir "$stats_dir"
     ensure_user_file "$stats_dir/purge_stats"
     ensure_user_file "$stats_dir/purge_count"
@@ -133,7 +133,7 @@ start_purge() {
 
 # Perform the purge
 perform_purge() {
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${PRISTINE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mole}" # pristine-fork
     local monitor_pid=""
 
     # Cleanup function - use flag to prevent duplicate execution

@@ -3089,7 +3089,7 @@ _mole_delete_log() {
     local status="$3"
     local target="$4"
 
-    local log_file="${MOLE_DELETE_LOG:-$HOME/Library/Logs/mole/deletions.log}"
+    local log_file="${MOLE_DELETE_LOG:-${PRISTINE_LOG_DIR:-$HOME/Library/Logs/mole}/deletions.log}" # pristine-fork
     local log_dir
     log_dir=$(dirname "$log_file")
 

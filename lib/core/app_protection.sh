@@ -361,6 +361,7 @@ should_protect_path() {
     if _mole_is_shared_home_state_root "$path"; then
         return 0
     fi
+    pristine_path_protected "$path" && return 0 # pristine-fork
 
     local _container_cache_path=false
     local _known_rebuildable_cache_path=false

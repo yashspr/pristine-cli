@@ -209,7 +209,7 @@ update_via_homebrew() {
     _mole_repair_stale_brew_entries
 
     # Clear update cache (suppress errors if cache doesn't exist or is locked)
-    rm -f "$HOME/.cache/mole/version_check" "$HOME/.cache/mole/update_message" 2> /dev/null || true
+    rm -f "${PRISTINE_CACHE_DIR:-$HOME/.cache/mole}/version_check" "${PRISTINE_CACHE_DIR:-$HOME/.cache/mole}/update_message" 2> /dev/null || true # pristine-fork
 }
 
 # Remove applications from Dock

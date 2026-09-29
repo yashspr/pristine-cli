@@ -20,6 +20,8 @@ Machine-readable, non-interactive modes, so a GUI can drive the engine as a sepa
 - Selection without menus: `--exclude-from` / `--only-from` path lists, `--skip-from` for
   optimize tasks, exact app paths or bundle ids for uninstall.
 - `--admin` lets a run show the native admin-password dialog; without it `--json` never prompts.
+- `PRISTINE_CONFIG_DIR`, `PRISTINE_CACHE_DIR` and `PRISTINE_LOG_DIR` move the settings, caches
+  and logs out of Mole's folders; `PRISTINE_PROTECT_PATHS` keeps folders out of every cleanup.
 - `scripts/pristine-dist.sh` builds a self-contained bundle with universal arm64 + x86_64 Go
   binaries.
 

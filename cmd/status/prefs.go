@@ -21,6 +21,9 @@ import (
 // getConfigPath returns the path to the status preferences file, or "" if the
 // user's home directory cannot be resolved.
 func getConfigPath() string {
+	if dir := pristineDataDir("PRISTINE_CONFIG_DIR"); dir != "" { // pristine-fork
+		return filepath.Join(dir, "status_prefs") // pristine-fork
+	} // pristine-fork
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""

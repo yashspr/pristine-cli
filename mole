@@ -175,7 +175,7 @@ interactive_main_menu() {
     local current_option=1
     local first_draw=true
     local brand_banner=""
-    local msg_cache="$HOME/.cache/mole/update_message"
+    local msg_cache="${PRISTINE_CACHE_DIR:-$HOME/.cache/mole}/update_message" # pristine-fork
     local update_message=""
 
     brand_banner="$(show_brand_banner)"

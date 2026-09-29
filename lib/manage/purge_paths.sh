@@ -13,7 +13,7 @@ if [[ -z "${PURGE_TARGETS:-}" ]]; then
 fi
 
 # Config file path (prefer the shared project constant when available)
-PURGE_PATHS_CONFIG="${PURGE_PATHS_CONFIG:-${PURGE_CONFIG_FILE:-$HOME/.config/mole/purge_paths}}"
+PURGE_PATHS_CONFIG="${PURGE_PATHS_CONFIG:-${PURGE_CONFIG_FILE:-${PRISTINE_CONFIG_DIR:-$HOME/.config/mole}/purge_paths}}" # pristine-fork
 
 # Ensure config file exists with helpful template
 ensure_config_template() {

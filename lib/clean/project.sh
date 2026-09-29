@@ -22,7 +22,7 @@ readonly PURGE_MAX_DEPTH_DEFAULT=6
 readonly DEFAULT_PURGE_SEARCH_PATHS=("${MOLE_PURGE_DEFAULT_SEARCH_PATHS[@]}")
 
 # Config file for custom purge paths.
-readonly PURGE_CONFIG_FILE="$HOME/.config/mole/purge_paths"
+readonly PURGE_CONFIG_FILE="${PRISTINE_CONFIG_DIR:-$HOME/.config/mole}/purge_paths" # pristine-fork
 
 # Resolved search paths.
 PURGE_SEARCH_PATHS=()
@@ -611,7 +611,7 @@ scan_purge_targets() {
     local scan_stage_timeout=""
 
     # Update current scanning path
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${PRISTINE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mole}" # pristine-fork
     echo "$search_path" > "$stats_dir/purge_scanning" 2> /dev/null || true
 
     emit_valid_cachedir_tag_dirs() {
@@ -1722,7 +1722,7 @@ clean_project_artifacts() {
             rm -f "$temp" "${temp}.targets" "${temp}.tags" "${temp}.processed" "${temp}.errors" 2> /dev/null || true
         done
         # Clean up purge scanning file
-        local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+        local stats_dir="${PRISTINE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mole}" # pristine-fork
         rm -f "$stats_dir/purge_scanning" 2> /dev/null || true
         echo ""
         exit 130
@@ -1863,7 +1863,7 @@ clean_project_artifacts() {
     done
 
     if [[ $scan_interrupt_status -ge 128 ]]; then
-        local interrupted_stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+        local interrupted_stats_dir="${PRISTINE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mole}" # pristine-fork
         rm -f "$interrupted_stats_dir/purge_scanning" 2> /dev/null || true
         local interrupted_temp
         for interrupted_temp in "${scan_temps[@]+"${scan_temps[@]}"}"; do
@@ -1878,7 +1878,7 @@ clean_project_artifacts() {
     fi
 
     # Stop the scanning monitor (removes purge_scanning file to signal completion)
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${PRISTINE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mole}" # pristine-fork
     rm -f "$stats_dir/purge_scanning" 2> /dev/null || true
 
     # Give monitor process time to exit and clear its output
@@ -2585,7 +2585,7 @@ clean_project_artifacts() {
 
     # Clean selected items
     echo ""
-    local stats_dir="${XDG_CACHE_HOME:-$HOME/.cache}/mole"
+    local stats_dir="${PRISTINE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/mole}" # pristine-fork
     local cleaned_count=0
     local dry_run_mode="${MOLE_DRY_RUN:-0}"
     for idx in "${selected_indices[@]}"; do

@@ -40,7 +40,7 @@ total_items=0
 files_cleaned=0
 total_size_cleaned=0
 
-readonly MOLE_UNINSTALL_META_CACHE_DIR="$HOME/.cache/mole"
+readonly MOLE_UNINSTALL_META_CACHE_DIR="${PRISTINE_CACHE_DIR:-$HOME/.cache/mole}" # pristine-fork
 readonly MOLE_UNINSTALL_META_CACHE_FILE="$MOLE_UNINSTALL_META_CACHE_DIR/uninstall_app_metadata_v3"
 readonly MOLE_UNINSTALL_META_CACHE_LOCK="${MOLE_UNINSTALL_META_CACHE_FILE}.lock"
 readonly MOLE_UNINSTALL_META_REFRESH_TTL=604800 # 7 days
@@ -360,7 +360,7 @@ start_uninstall_metadata_refresh() {
             if [[ "${MO_DEBUG:-}" == "1" ]]; then
                 local ts
                 ts=$(date "+%Y-%m-%d %H:%M:%S" 2> /dev/null || echo "?")
-                echo "[$ts] DEBUG: [metadata-refresh] $*" >> "${HOME}/.config/mole/mole_debug_session.log" 2> /dev/null || true
+                echo "[$ts] DEBUG: [metadata-refresh] $*" >> "${PRISTINE_CONFIG_DIR:-${HOME}/.config/mole}/mole_debug_session.log" 2> /dev/null || true # pristine-fork
             fi
         }
 

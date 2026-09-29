@@ -47,7 +47,7 @@ MOLE_USER_HOME="$(get_invoking_home)"
 
 load_mole_whitelist "$MOLE_USER_HOME"
 
-CLEAN_PREVIEW_FINAL_FILE="$MOLE_USER_HOME/.config/mole/clean-list.txt"
+CLEAN_PREVIEW_FINAL_FILE="${PRISTINE_CONFIG_DIR:-$MOLE_USER_HOME/.config/mole}/clean-list.txt" # pristine-fork
 CLEAN_PREVIEW_STAGING_FILE=""
 CLEAN_PREVIEW_LEDGER_FILE=""
 EXPORT_LIST_FILE="$CLEAN_PREVIEW_FINAL_FILE"

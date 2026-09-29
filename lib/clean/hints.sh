@@ -11,7 +11,7 @@ source "$mole_hints_dir/purge_shared.sh"
 # Designed to be very fast: shallow directory checks only, no deep find scans.
 # shellcheck disable=SC2329
 load_quick_purge_hint_paths() {
-    local config_file="$HOME/.config/mole/purge_paths"
+    local config_file="${PRISTINE_CONFIG_DIR:-$HOME/.config/mole}/purge_paths" # pristine-fork
     local -a paths=()
 
     while IFS= read -r line; do

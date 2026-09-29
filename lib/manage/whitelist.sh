@@ -18,9 +18,10 @@ source "$_MOLE_MANAGE_DIR/../ui/menu_simple.sh"
 source "$_MOLE_MANAGE_DIR/../optimize/catalog.sh"
 
 # Config file paths
-readonly WHITELIST_CONFIG_CLEAN="$HOME/.config/mole/whitelist"
-readonly WHITELIST_CONFIG_OPTIMIZE="$HOME/.config/mole/whitelist_optimize"
-readonly WHITELIST_CONFIG_OPTIMIZE_LEGACY="$HOME/.config/mole/whitelist_checks"
+# pristine-fork: PRISTINE_CONFIG_DIR (lib/pristine/paths.sh)
+readonly WHITELIST_CONFIG_CLEAN="${PRISTINE_CONFIG_DIR:-$HOME/.config/mole}/whitelist"
+readonly WHITELIST_CONFIG_OPTIMIZE="${PRISTINE_CONFIG_DIR:-$HOME/.config/mole}/whitelist_optimize"
+readonly WHITELIST_CONFIG_OPTIMIZE_LEGACY="${PRISTINE_CONFIG_DIR:-$HOME/.config/mole}/whitelist_checks"
 
 # Default / safety whitelist patterns defined in lib/core/base.sh:
 # - DEFAULT_WHITELIST_PATTERNS

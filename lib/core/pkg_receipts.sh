@@ -16,7 +16,7 @@ pkg_receipt_nonstandard_app_paths() {
 
     local require_complete=0
     [[ "${1:-}" == "--require-complete" ]] && require_complete=1
-    local cache_file="${MOLE_PKG_RECEIPT_CACHE_FILE:-$HOME/.cache/mole/pkg_receipt_apps_v1}"
+    local cache_file="${MOLE_PKG_RECEIPT_CACHE_FILE:-${PRISTINE_CACHE_DIR:-$HOME/.cache/mole}/pkg_receipt_apps_v1}" # pristine-fork
     local cache_ttl="${MOLE_PKG_RECEIPT_CACHE_TTL:-3600}"
     local now_epoch=0
     if declare -f get_epoch_seconds > /dev/null 2>&1; then

@@ -17,6 +17,7 @@ Upstream base: `tw93/mole` v1.56.0 (`50790e8a`, 2026-09-27).
 | 2026-09-28 | Fix: `request_sudo_access` now opens `/dev/tty` to detect a terminal. `-r`/`-w` pass without a controlling terminal, so app-spawned runs never got the password dialog (upstream bug; PR candidate) |
 | 2026-09-28 | `--json` for `installer`, `purge`, `optimize`, `uninstall`; shared flag/event layer in `lib/pristine/common.sh`; the `pristine` entrypoint writes the final `end` event and forwards cancellation to the whole process tree |
 | 2026-09-28 | Repository renamed to `yashspr/cleaner-cli`; bundle `BUILD-INFO` source URL updated; `pristine` entrypoint's default dialog title is now "cleaner-cli" |
+| 2026-09-29 | Relocatable data directories: `PRISTINE_CONFIG_DIR`, `PRISTINE_CACHE_DIR`, `PRISTINE_LOG_DIR` replace `~/.config/mole`, `~/.cache/mole`, `~/Library/Logs/mole` (shell and Go); `PRISTINE_PROTECT_PATHS` keeps folders out of cleanup (`lib/pristine/paths.sh`) |
 
 ## Releases
 
@@ -30,6 +31,7 @@ must be pushed so its corresponding source is public (GPL-3.0 §6).
 | `pristine-v0.1.0` | tw93/mole v1.56.0 (`50790e8a`) | `clean --json`, `--exclude-from`, `--admin`; `pristine` entrypoint; dist script |
 | `pristine-v0.2.0` | tw93/mole v1.56.0 (`50790e8a`) | rebrand; admin-dialog fix; `--json` for installer / purge / optimize / uninstall; entrypoint `end` event + cancellation |
 | `pristine-v0.2.1` | tw93/mole v1.56.0 (`50790e8a`) | repo renamed to `yashspr/cleaner-cli`: README, source URL in `BUILD-INFO`, neutral default dialog title |
+| `pristine-v0.3.0` | tw93/mole v1.56.0 (`50790e8a`) | relocatable data directories (`PRISTINE_CONFIG_DIR`, `PRISTINE_CACHE_DIR`, `PRISTINE_LOG_DIR`) and `PRISTINE_PROTECT_PATHS` |
 
 Cutting a release:
 
@@ -48,7 +50,7 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
 
 - Fork-only files (upstream never touches them, so they never conflict):
   `lib/pristine/*`, `pristine`, `scripts/pristine-dist.sh`, `tests/pristine_*.bats`,
-  `CHANGES-FORK.md`, `.gitattributes`.
+  `cmd/*/pristine_*.go`, `CHANGES-FORK.md`, `.gitattributes`.
 - `README.md` is the fork's own. `.gitattributes` marks it `merge=ours`, so upstream README
   edits are dropped automatically. Each clone needs `git config merge.ours.driver true` once.
 - `docs/img/*` (Mole logo/screenshots) were deleted. If upstream changes or adds images there,
@@ -58,8 +60,10 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
   `_pristine_orig_<name>` and a fork wrapper takes its name. Upstream can rewrite those function
   bodies freely; a merge only breaks if a wrapped function is **renamed or removed** (or, where
   noted, a local variable a wrapper reads is renamed), and the fork tests catch that.
-- Every edited line in a shared file ends with `# pristine-fork`, so
-  `git grep -n 'pristine-fork'` is the complete list of hook points.
+- Every edited line in a shared file ends with `# pristine-fork` (`// pristine-fork` in Go), so
+  `git grep -n 'pristine-fork'` is the complete list of hook points. Where a trailing comment
+  would make shfmt re-align untouched upstream lines, a `# pristine-fork: ...` line sits above
+  the edited block instead.
 
 ### Hook inventory
 
@@ -69,6 +73,9 @@ Rule: **fork logic lives in fork-only files; shared files only get hook lines.**
 | same five files | 2 lines at the top of `main()` each | strip fork flags, install wrappers |
 | `lib/core/sudo.sh` | 2 lines at the `/dev/tty` check in `request_sudo_access` | real open test, so app-spawned runs reach the native dialog |
 | `lib/core/sudo.sh` | 3 lines at the `osascript` dialog | title from `PRISTINE_DIALOG_TITLE` (sanitized; default "Mole", `pristine` sets "cleaner-cli") |
+| `lib/core/base.sh` | 1 `source .../lib/pristine/paths.sh` line | load the data-dir overrides for every command |
+| `lib/core/app_protection.sh` | 1 line in `should_protect_path` | data dirs and `PRISTINE_PROTECT_PATHS` are never cleaned |
+| `mole`, `bin/*.sh`, `lib/*/*.sh`, `cmd/analyze/cache.go`, `cmd/status/prefs.go` | each hard-coded `~/.config/mole`, `~/.cache/mole`, `~/Library/Logs/mole` | `${PRISTINE_<KIND>_DIR:-<upstream path>}`; `tests/pristine_data_dirs.bats` fails if a merge adds an unrouted one |
 | `.gitignore` | `/dist/` | ignore bundle output |
 
 `bin/uninstall.sh` sources its fork file relative to `BASH_SOURCE`, not `SCRIPT_DIR`: the
@@ -93,7 +100,7 @@ git fetch upstream
 git merge upstream/main          # merge, not rebase: keeps fork history and tags intact
                                  # docs/img conflict? → git rm docs/img/<file>
 git grep -n 'pristine-fork'      # hook lines still in place?
-MOLE_TEST_NO_AUTH=1 bats tests/pristine_*.bats
+MOLE_TEST_NO_AUTH=1 bats tests/pristine_*.bats   # pristine_data_dirs.bats lists new state paths to route
 ./scripts/check.sh --no-format
 ```
 
@@ -112,6 +119,19 @@ Always run through the **`pristine`** entrypoint. It is the same CLI as `mo`/`mo
 - Treat the `end` event or process exit as completion, not stdout EOF: background helpers (sudo
   keepalive, brew autoremove) can hold the pipe open.
 - `PRISTINE_DIALOG_TITLE` sets the title of the native admin-password dialog (default "cleaner-cli"; a GUI should set its own name).
+- Data directories (all commands, shell and Go). Unset, upstream's folders are used. Each value
+  must be an absolute path; anything else is ignored with a warning on stderr.
+
+  | Variable | Replaces | Holds |
+  |---|---|---|
+  | `PRISTINE_CONFIG_DIR` | `~/.config/mole` | `whitelist`, `whitelist_optimize`, `purge_paths`, `clean-list.txt`, `status_prefs` |
+  | `PRISTINE_CACHE_DIR` | `~/.cache/mole` | scan, app and analyze caches; fallback temp dir when `TMPDIR` is unusable |
+  | `PRISTINE_LOG_DIR` | `~/Library/Logs/mole` | `mole.log`, `operations.log` and `deletions.log` (what `history` reads) |
+
+  Cleanup never removes these directories or anything in them. `PRISTINE_PROTECT_PATHS`
+  (colon-separated absolute paths) protects more folders the same way; list the parent too when
+  a data dir sits in a folder cleanup sweeps (`~/Library/Caches/<app>/…`, `~/Library/Logs/<app>/…`).
+  Mole's own install management (`update`, `remove`) still uses the upstream folders.
 - `status --json`, `analyze --json`, `history --json` are upstream's own formats and get no `end`.
 
 ### Common flags

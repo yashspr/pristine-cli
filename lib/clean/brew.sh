@@ -276,7 +276,7 @@ clean_homebrew() {
     command -v brew > /dev/null 2>&1 || return 0
     local cleanup_timeout="${MOLE_TIMEOUT_PKG_CLEANUP_SEC:-20}"
     local autoremove_preview_timeout="${MOLE_TIMEOUT_PKG_LIST_SEC:-10}"
-    local brew_cache_file="${HOME}/.cache/mole/brew_last_cleanup"
+    local brew_cache_file="${PRISTINE_CACHE_DIR:-${HOME}/.cache/mole}/brew_last_cleanup" # pristine-fork
     if [[ "${DRY_RUN:-false}" == "true" ]]; then
         # Check if Homebrew cache is whitelisted
         if is_path_whitelisted "$HOME/Library/Caches/Homebrew"; then
